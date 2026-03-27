@@ -1,49 +1,70 @@
-import math
+import numpy as np
 
 
-eps = 0.001
-max_iter = 100
+A = np.array([
+    [-1, 1, 1, 1],
+    [2, 1, 2, 3],
+    [3, 2, 1, 2],
+    [4, 3, 2, 1]
+], dtype=float)
 
-print("Метод простої ітерації:")
-
-x1 = x2 = x3 = 0
-
-for i in range(max_iter):
-    x1_new = (5.0 - 3.1*x2 - 4.0*x3) / 3.7
-    x2_new = (4.9 - 4.1*x1 + 4.8*x3) / 4.5
-    x3_new = (2.7 + 2.1*x1 + 3.7*x2) / 1.8
-
-    if max(abs(x1_new-x1), abs(x2_new-x2), abs(x3_new-x3)) < eps:
-        break
-
-    x1, x2, x3 = x1_new, x2_new, x3_new
-
-print("x1 =", round(x1_new,3), "\nx2 =", round(x2_new,3), "\nx3 =", round(x3_new,3), "\nКількість ітерацій:", i+1)
+B = np.array([4, 1, 1, -5], dtype=float)
+n = len(B)
 
 
+def cramer(A, B):
+    det_A = np.linalg.det(A)
+    if det_A == 0:
+        return "Система вироджена"
+    X = []
+    for i in range(n):
+        Ai = A.copy()
+        Ai[:, i] = B
+        X.append(np.linalg.det(Ai) / det_A)
+    return X
 
-print("\nМетод Зейделя:")
 
-x1 = x2 = x3 = 0
+def gaussian_elimination(A, B):
+    A = A.copy()
+    B = B.copy()
 
-for i in range(max_iter):
+    for i in range(n):
+        max_row = np.argmax(abs(A[i:, i])) + i
+        A[[i, max_row]] = A[[max_row, i]]
+        B[[i, max_row]] = B[[max_row, i]]
 
-    x1_new = (5.0 - 3.1*x2 - 4.0*x3) / 3.7
-    x2_new = (4.9 - 4.1*x1_new + 4.8*x3) / 4.5
-    x3_new = (2.7 + 2.1*x1_new + 3.7*x2_new) / 1.8
+        for j in range(i + 1, n):
+            factor = A[j, i] / A[i, i]
+            A[j, i:] -= factor * A[i, i:]
+            B[j] -= factor * B[i]
 
-    # перевірка на nan або дуже великі числа
-    if math.isnan(x1_new) or math.isnan(x2_new) or math.isnan(x3_new):
-        print("Метод розійшовся (отримано NaN)")
-        break
+    X = np.zeros(n)
+    for i in range(n - 1, -1, -1):
+        X[i] = (B[i] - np.dot(A[i, i + 1:], X[i + 1:])) / A[i, i]
+    return X
 
-    if max(abs(x1_new-x1), abs(x2_new-x2), abs(x3_new-x3)) < eps:
-        break
 
-    x1, x2, x3 = x1_new, x2_new, x3_new
+def gauss_jordan(A, B):
+    A = A.copy()
+    B = B.copy()
 
-else:
-    print("Метод не збігся за", max_iter, "ітерацій")
-    x1_new, x2_new, x3_new = x1, x2, x3
+    for i in range(n):
+        B[i] /= A[i, i]
+        A[i] = A[i] / A[i, i]
+        for j in range(n):
+            if j != i:
+                factor = A[j, i]
+                A[j] -= factor * A[i]
+                B[j] -= factor * B[i]
+    return B
 
-print("x1 =", round(x1_new,3), "\nx2 =", round(x2_new,3), "\nx3 =", round(x3_new,3), "\nКількість ітерацій:", i+1)
+
+def inverse_matrix_method(A, B):
+    inv_A = np.linalg.inv(A)
+    return np.dot(inv_A, B)
+
+
+print("Метод Крамера:", np.round(cramer(A, B), 4))
+print("Метод Гауса:", np.round(gaussian_elimination(A, B), 4))
+print("Метод Жордано-Гауса:", np.round(gauss_jordan(A, B), 4))
+print("Метод оберненої матриці:", np.round(inverse_matrix_method(A, B), 4))
